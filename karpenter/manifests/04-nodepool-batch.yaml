@@ -1,0 +1,70 @@
+# ============================================================
+# 04-nodepool-batch.yaml
+# NodePool BATCH — jobs pesados, spot apenas (custo mínimo)
+#
+# Workloads alvo: ETL, processamento em lote, jobs de ML, CI runners
+# Taint: node-role=batch:NoSchedule
+# Tolerar em pods: tolerations[{key: node-role, value: batch, effect: NoSchedule}]
+#
+# Política de consolidação WhenEmpty (não WhenEmptyOrUnderutilized):
+#   jobs batch frequentemente têm CPU alta no início e idle depois —
+#   consolidação por subutilização removeria nós ainda com jobs rodando.
+# ============================================================
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: karpenter-batch
+  labels:
+    app.kubernetes.io/name: karpenter
+    environment: lab
+    node-role: batch
+spec:
+  template:
+    metadata:
+      labels:
+        provisioner: karpenter
+        node-role: batch
+        environment: lab
+
+    spec:
+      nodeClassRef:
+        group: oci.oraclecloud.com
+        kind: OCINodeClass
+        name: oke-workers-default
+
+      taints:
+        - key: node-role
+          value: batch
+          effect: NoSchedule
+
+      requirements:
+        - key: "kubernetes.io/os"
+          operator: In
+          values: ["linux"]
+
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+
+        # Spot preferido — on-demand como fallback se spot indisponível na região
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["spot", "on-demand"]
+
+        # Necessário para o Karpenter associar pods com nodeSelector node-role=batch a este pool
+        - key: "node-role"
+          operator: In
+          values: ["batch"]
+
+      expireAfter: 720h
+
+  disruption:
+    # WhenEmpty: só remove nó quando não tem nenhum pod — não interrompe jobs
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
+    budgets:
+      - nodes: "30%"
+
+  limits:
+    cpu: "128"       # jobs pesados podem consumir muito — teto alto no lab
+    memory: "512Gi"

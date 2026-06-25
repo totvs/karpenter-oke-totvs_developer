@@ -1,0 +1,96 @@
+# ============================================================
+# 00-namespace-rbac.yaml
+# Namespace, ServiceAccount e ClusterRole para o Karpenter
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: karpenter
+  labels:
+    app.kubernetes.io/name: karpenter
+---
+# ServiceAccount usado pelo controller (Instance Principal — sem Secret de credencial)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: karpenter
+  namespace: karpenter
+  labels:
+    app.kubernetes.io/name: karpenter
+---
+# ClusterRole com permissões mínimas necessárias para o Karpenter operar
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: karpenter
+  labels:
+    app.kubernetes.io/name: karpenter
+rules:
+  # Gerenciar nodes
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes/status"]
+    verbs: ["get", "patch", "update"]
+  # Pods — watch e eviction
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/eviction"]
+    verbs: ["create"]
+  # PersistentVolumeClaims e PersistentVolumes
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims", "persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+  # Namespaces e ConfigMaps
+  - apiGroups: [""]
+    resources: ["namespaces", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  # Events
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  # ReplicaSets, StatefulSets, Deployments, DaemonSets — para ownership reference
+  - apiGroups: ["apps"]
+    resources: ["replicasets", "statefulsets", "deployments", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  # Jobs / CronJobs
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  # PodDisruptionBudgets
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch"]
+  # StorageClasses
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "csinodes", "volumeattachments"]
+    verbs: ["get", "list", "watch"]
+  # Karpenter CRDs próprios
+  - apiGroups: ["karpenter.sh"]
+    resources: ["nodepools", "nodeclaims", "nodepools/status", "nodeclaims/status"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["oci.oraclecloud.com"]
+    resources: ["ocinodeclasses", "ocinodeclasses/status"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  # Leases para leader election
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["create", "get", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: karpenter
+  labels:
+    app.kubernetes.io/name: karpenter
+subjects:
+  - kind: ServiceAccount
+    name: karpenter
+    namespace: karpenter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: karpenter

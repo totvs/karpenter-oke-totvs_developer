@@ -1,0 +1,68 @@
+# ============================================================
+# 02-nodepool-system.yaml
+# NodePool SYSTEM — addons críticos, on-demand, nós estáveis
+#
+# Workloads alvo: monitoring, logging, ingress, cert-manager
+# Taint: node-role=system:NoSchedule
+# Tolerar em pods: tolerations[{key: node-role, value: system, effect: NoSchedule}]
+# ============================================================
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: karpenter-system
+  labels:
+    app.kubernetes.io/name: karpenter
+    environment: lab
+    node-role: system
+spec:
+  template:
+    metadata:
+      labels:
+        provisioner: karpenter
+        node-role: system
+        environment: lab
+
+    spec:
+      nodeClassRef:
+        group: oci.oraclecloud.com
+        kind: OCINodeClass
+        name: oke-workers-default
+
+      # Taint que garante isolamento real — apenas pods com toleração entram
+      taints:
+        - key: node-role
+          value: system
+          effect: NoSchedule
+
+      requirements:
+        - key: "kubernetes.io/os"
+          operator: In
+          values: ["linux"]
+
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+
+        # On-demand apenas — addons de sistema não toleram preempção
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+
+        # Necessário para o Karpenter associar pods com nodeSelector node-role=system a este pool
+        - key: "node-role"
+          operator: In
+          values: ["system"]
+
+      # 30 dias — nós de sistema devem ser estáveis
+      expireAfter: 720h
+
+  disruption:
+    # Consolida quando ocioso ou subutilizado — mais conservador para sistema
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 5m
+    budgets:
+      - nodes: "10%"   # interrompe no máximo 10% dos nós de sistema por vez
+
+  limits:
+    cpu: "16"       # 8 nós de 2 OCPUs ou 4 nós de 4 OCPUs
+    memory: "64Gi"

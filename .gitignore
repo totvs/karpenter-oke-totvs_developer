@@ -1,0 +1,105 @@
+# ==============================================================
+# CREDENCIAIS E VARIÁVEIS SENSÍVEIS — nunca commitar
+# ==============================================================
+
+# Arquivo de variáveis com OCIDs, fingerprints e caminhos de chave
+terraform.tfvars
+terraform.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+
+# Chaves privadas e certificados
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# Arquivos de configuração OCI com credenciais
+.oci/
+oci_config
+config
+
+# Tokens e arquivos de autenticação
+*token*
+*secret*
+*credential*
+*credentials*
+.env
+.env.*
+
+# Kubeconfig — pode conter tokens de cluster
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+~/.kube/config
+
+# ==============================================================
+# TERRAFORM — state e cache local
+# ==============================================================
+
+# State local (contém todos os atributos dos recursos, incluindo sensíveis)
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfstate.*.backup
+
+# Diretório de plugins/providers (binários grandes, não versionados)
+.terraform/
+
+# Arquivo de override (uso local apenas)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Planos gerados localmente
+*.tfplan
+plan.out
+
+# Variáveis de ambiente geradas pelo terraform-env
+.terraform.env
+
+# ==============================================================
+# HELM — charts baixados e values com dados reais
+# ==============================================================
+
+# Pacotes de chart baixados (binários)
+*.tgz
+
+# Values com OCIDs e IPs reais — use values.yaml.example como template
+karpenter/helm/values.yaml
+
+# ==============================================================
+# SISTEMA OPERACIONAL E IDEs
+# ==============================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# JetBrains (IntelliJ, GoLand, etc.)
+.idea/
+*.iml
+
+# ==============================================================
+# LOGS E TEMPORÁRIOS
+# ==============================================================
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo

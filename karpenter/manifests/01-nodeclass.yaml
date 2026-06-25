@@ -1,0 +1,48 @@
+# ============================================================
+# 01-nodeclass.yaml
+# OciNodeClass — define como os nós serão provisionados no OCI
+# Documentacao oficial Oracle:
+#   https://docs.oracle.com/iaas/Content/ContEng/Tasks/contengusingkarpenter.htm
+# ============================================================
+#
+# ANTES DE APLICAR, substitua os placeholders:
+#   <SUBNET-WORKERS-OCID>  → terraform -chdir=.. output -json oke_subnet_ids | jq -r '.workers'
+#   <NSG-WORKERS-OCID>     → terraform -chdir=.. output -json oke_nsg_ids    | jq -r '.workers'
+#   <IMAGE-OKE-OL8-OCID>   → ver instrucao abaixo
+#
+# Para obter a imagem OKE compativel com k8s v1.32.1 na regiao sa-saopaulo-1:
+#   oci ce node-pool-options get \
+#     --node-pool-option-id all \
+#     --compartment-id ocid1.compartment.oc1..aaaaaaaacaai2dh5xaukz3iwq5wddndg6v7kap5wu55muspf5cc5d647vglq \
+#     --profile engpro \
+#     | jq -r '.data.sources[] | select(."source-name" | test("OKE.*1.32.*OL8")) | ."image-id"' | head -3
+# ============================================================
+apiVersion: oci.oraclecloud.com/v1beta1
+kind: OCINodeClass
+metadata:
+  name: oke-workers-default
+  labels:
+    environment: lab
+spec:
+  # shapeConfigs habilita Flex shapes (ex: VM.Standard3.Flex, VM.Standard.E4.Flex).
+  # Sem isso, apenas shapes fixos (ex: VM.Standard2.2) sao considerados.
+  shapeConfigs:
+    - ocpus: 2
+      memoryInGbs: 8
+    - ocpus: 4
+      memoryInGbs: 16
+    - ocpus: 8
+      memoryInGbs: 32
+
+  networkConfig:
+    primaryVnicConfig:
+      subnetConfig:
+        subnetId: "ocid1.subnet.oc1.sa-saopaulo-1.aaaaaaaaepanvg7gcvubk2u647t3dp5uihxfc3vlh7xdap44pnbfuizwmonq"
+      networkSecurityGroupConfigs:
+        - networkSecurityGroupId: "ocid1.networksecuritygroup.oc1.sa-saopaulo-1.aaaaaaaa3robcroreqiaxe5ehvmvedeluf4hvn3lvdlnkqwkjclif5vv6vfq"
+
+  volumeConfig:
+    bootVolumeConfig:
+      imageConfig:
+        imageType: OKEImage
+        imageId: "ocid1.image.oc1.sa-saopaulo-1.aaaaaaaar6q7y23e4maio4ag2f2arc6utake3rscdlx7buxarwkdocw6cckq"

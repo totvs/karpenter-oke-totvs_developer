@@ -1,0 +1,71 @@
+# ============================================================
+# 03-nodepool-app.yaml
+# NodePool APP — workloads de aplicação, spot + on-demand
+#
+# Workloads alvo: APIs, backends, frontends, workers
+# Taint: node-role=app:NoSchedule
+# Tolerar em pods: tolerations[{key: node-role, value: app, effect: NoSchedule}]
+#
+# Nota sobre spot (Preemptible Instances OCI):
+#   - ~50% mais barato que on-demand
+#   - Pode ser terminado com 30s de aviso
+#   - Não disponível para bare metal nem shapes burstable
+#   - KPO fallback automático para on-demand se spot não disponível
+# ============================================================
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: karpenter-app
+  labels:
+    app.kubernetes.io/name: karpenter
+    environment: lab
+    node-role: app
+spec:
+  template:
+    metadata:
+      labels:
+        provisioner: karpenter
+        node-role: app
+        environment: lab
+
+    spec:
+      nodeClassRef:
+        group: oci.oraclecloud.com
+        kind: OCINodeClass
+        name: oke-workers-default
+
+      taints:
+        - key: node-role
+          value: app
+          effect: NoSchedule
+
+      requirements:
+        - key: "kubernetes.io/os"
+          operator: In
+          values: ["linux"]
+
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+
+        # Spot preferido — on-demand como fallback automático pelo KPO
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["spot", "on-demand"]
+
+        # Necessário para o Karpenter associar pods com nodeSelector node-role=app a este pool
+        - key: "node-role"
+          operator: In
+          values: ["app"]
+
+      expireAfter: 720h
+
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 2m
+    budgets:
+      - nodes: "20%"
+
+  limits:
+    cpu: "64"        # ~16 nós de 4 OCPUs ou 8 nós de 8 OCPUs
+    memory: "256Gi"

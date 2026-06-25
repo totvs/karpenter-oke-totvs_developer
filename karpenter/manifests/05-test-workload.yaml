@@ -1,0 +1,150 @@
+# ============================================================
+# 05-test-workload.yaml
+# 3 Deployments inflate — um por NodePool
+#
+# Uso:
+#   kubectl apply -f manifests/05-test-workload.yaml
+#
+#   # Testar system pool (on-demand)
+#   kubectl -n karpenter-test scale deployment inflate-system --replicas=3
+#
+#   # Testar app pool (spot + on-demand)
+#   kubectl -n karpenter-test scale deployment inflate-app --replicas=5
+#
+#   # Testar batch pool (spot apenas)
+#   kubectl -n karpenter-test scale deployment inflate-batch --replicas=4
+#
+#   # Acompanhar nós sendo criados
+#   kubectl get nodes -L node-role -w
+#   kubectl get nodeclaim -w
+#   kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter -f
+#
+#   # Scale-in (nós removidos após consolidateAfter de cada pool)
+#   kubectl -n karpenter-test scale deployment inflate-system --replicas=0
+#   kubectl -n karpenter-test scale deployment inflate-app    --replicas=0
+#   kubectl -n karpenter-test scale deployment inflate-batch  --replicas=0
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: karpenter-test
+---
+# ── SYSTEM ───────────────────────────────────────────────────
+# Valida NodePool karpenter-system (on-demand)
+# Requests leves — representa addons de sistema
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inflate-system
+  namespace: karpenter-test
+  labels:
+    app: inflate-system
+    test: karpenter-scale
+    node-role: system
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: inflate-system
+  template:
+    metadata:
+      labels:
+        app: inflate-system
+    spec:
+      nodeSelector:
+        node-role: system
+      tolerations:
+        - key: node-role
+          value: system
+          effect: NoSchedule
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: inflate
+          image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+# ── APP ──────────────────────────────────────────────────────
+# Valida NodePool karpenter-app (spot + on-demand)
+# Requests médios — representa workloads de aplicação
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inflate-app
+  namespace: karpenter-test
+  labels:
+    app: inflate-app
+    test: karpenter-scale
+    node-role: app
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: inflate-app
+  template:
+    metadata:
+      labels:
+        app: inflate-app
+    spec:
+      nodeSelector:
+        node-role: app
+      tolerations:
+        - key: node-role
+          value: app
+          effect: NoSchedule
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: inflate
+          image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+---
+# ── BATCH ────────────────────────────────────────────────────
+# Valida NodePool karpenter-batch (spot apenas)
+# Requests maiores — representa jobs pesados
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inflate-batch
+  namespace: karpenter-test
+  labels:
+    app: inflate-batch
+    test: karpenter-scale
+    node-role: batch
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: inflate-batch
+  template:
+    metadata:
+      labels:
+        app: inflate-batch
+    spec:
+      nodeSelector:
+        node-role: batch
+      tolerations:
+        - key: node-role
+          value: batch
+          effect: NoSchedule
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: inflate
+          image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+          resources:
+            requests:
+              cpu: "2"
+              memory: "2Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"

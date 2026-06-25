@@ -1,0 +1,47 @@
+# ==============================================================
+# Copie este arquivo para terraform.tfvars e preencha os valores.
+# O terraform.tfvars real está no .gitignore e NÃO deve ser commitado.
+# ==============================================================
+
+# --- Identidade OCI ---
+compartment_ocid = "ocid1.compartment.oc1..XXXXXXXX"
+tenancy_ocid     = "ocid1.tenancy.oc1..XXXXXXXX"
+user_ocid        = "ocid1.user.oc1..XXXXXXXX"
+fingerprint      = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+private_key_path = "/home/<seu-usuario>/.oci/<sua-chave>.pem"
+
+# --- Cluster ---
+region       = "sa-saopaulo-1"
+cluster_name = "cluster-lab"
+environment  = "lab"
+k8s_version  = "v1.32.1"
+
+# --- Node Pool ---
+oke_node_shape            = "VM.Standard3.Flex"
+oke_node_ocpus            = 1
+oke_node_memory_in_gbs    = 8
+oke_node_pool_size        = 3
+oke_node_boot_volume_size = 50
+oke_node_pool_os_version  = "8.10"
+
+# --- Rede ---
+oke_vcn_cidrs     = ["10.0.0.0/16"]
+oke_cni_type      = "flannel"
+oke_pods_cidr     = "10.244.0.0/16"
+oke_services_cidr = "10.96.0.0/16"
+
+oke_control_plane_allowed_cidrs  = ["0.0.0.0/0"]
+oke_allow_worker_internet_access = true
+oke_allow_pod_internet_access    = true
+oke_allow_worker_icmp_egress     = true
+
+oke_subnets = {
+  pub_lb   = { netnum = 0, newbits = 3 }
+  int_lb   = { netnum = 7, newbits = 3 }
+  workers  = { netnum = 1, newbits = 2 }
+  cp       = { netnum = 8, newbits = 4 }
+  bastion  = { netnum = 10, newbits = 4 }
+  operator = { netnum = 11, newbits = 4 }
+  pods     = { netnum = 12, newbits = 4 }
+  fss      = { netnum = 13, newbits = 4 }
+}

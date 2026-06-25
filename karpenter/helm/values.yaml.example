@@ -1,0 +1,55 @@
+# ============================================================
+# Karpenter Provider for OCI (KPO) — values.yaml
+# Repositório Helm oficial Oracle:
+#   https://oracle.github.io/karpenter-provider-oci/charts
+#
+# Copie este arquivo para values.yaml e preencha os campos marcados.
+# O values.yaml real está no .gitignore e NÃO deve ser commitado.
+#
+# Instalação:
+#   helm repo add karpenter-provider-oci https://oracle.github.io/karpenter-provider-oci/charts
+#   helm repo update karpenter-provider-oci
+#   helm install karpenter karpenter-provider-oci/karpenter \
+#     --version <chart-version> \
+#     --values helm/values.yaml \
+#     --namespace karpenter \
+#     --create-namespace
+# ============================================================
+
+controller:
+  env:
+    - name: "OCI_RESOURCE_PRINCIPAL_VERSION"
+      value: "2.2"
+    - name: "OCI_REGION"
+      value: "<regiao>"                      # ex: sa-saopaulo-1
+
+settings:
+  # OBRIGATÓRIO — OCID do compartment do cluster
+  clusterCompartmentId: "<COMPARTMENT_OCID>"
+
+  # OBRIGATÓRIO — OCID do compartment da VCN (geralmente o mesmo)
+  vcnCompartmentId: "<COMPARTMENT_OCID>"
+
+  # OBRIGATÓRIO — IP PRIVADO do apiserver (somente o IP, sem https:// ou porta)
+  # Obter com:
+  #   oci ce cluster get --cluster-id <CLUSTER_OCID> --profile <PERFIL> \
+  #     --query 'data.endpoints."private-endpoint"' --raw-output
+  apiserverEndpoint: "<IP_PRIVADO_APISERVER>"
+
+  # false = flannel | true = CNI Nativo VCN (NPN)
+  ociVcnIpNative: false
+
+  # OPCIONAL — famílias IP das VNICs dos workers
+  # ipFamilies: ["IPv4"]
+
+  # OPCIONAL — configurações padrão de shapes flex
+  # flexibleShapeConfigs:
+  #   - shape: VM.Standard3.Flex
+  #     ocpu: 2
+  #     memoryInGbs: 16
+
+# OPCIONAL — override de imagem (usar se precisar espelhar para OCIR)
+# image:
+#   registry: "<registry>"
+#   repositoryName: "<repository-name>"
+#   tag: "<version>"
